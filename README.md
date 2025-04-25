@@ -14,13 +14,15 @@ AutoGram is an intelligent AI agent that automates AI news curation and Instagra
 - **Performance Analytics**: Tracks engagement and optimizes content strategy
 - **Self-Learning**: Improves content selection based on performance
 - **Brand Consistency**: Maintains your visual identity across all posts
+- **Multi-Model Image Generation**: Supports both OpenAI GPT Image and Replicate models
 
 ## 🛠️ Tech Stack
 
 - **Core Engine**: Python 3.9+
 - **AI Services**: 
   - Google Gemini (content analysis)
-  - Replicate SANA (image generation)
+  - OpenAI GPT Image (primary image generation)
+  - Replicate ideogram (alternative image generation)
 - **News Sources**: GNews API
 - **Social Platform**: Instagram API
 - **Processing**: aiohttp, asyncio
@@ -46,6 +48,7 @@ cp .env.example .env
 
 # Add your API keys
 GEMINI_API_KEY=your_key_here
+OPENAI_API_KEY=your_openai_key_here
 REPLICATE_API_TOKEN=your_token_here
 IG_USERNAME=your_username
 IG_PASSWORD=your_password
@@ -63,6 +66,19 @@ IG_PASSWORD=your_password
         "primary_color": "#FF6B6B",
         "secondary_color": "#4ECDC4",
         "font_style": "modern"
+    },
+    "image_generation": {
+        "default_provider": "openai",
+        "providers": {
+            "openai": {
+                "model": "gpt-image-1",
+                "size": "1024x1024",
+                "quality": "medium"
+            },
+            "replicate": {
+                "model": "ideogram-ai/ideogram-v2"
+            }
+        }
     }
 }
 ```
@@ -84,6 +100,40 @@ python main.py
 ```
 
 ## ⚙️ Advanced Configuration
+
+### Image Generation Settings
+
+You can configure which AI model to use for image generation in `config.json`:
+
+1. **OpenAI GPT Image (Default)**
+```json
+{
+    "image_generation": {
+        "default_provider": "openai",
+        "providers": {
+            "openai": {
+                "model": "gpt-image-1",
+                "size": "1024x1024",
+                "quality": "medium"
+            }
+        }
+    }
+}
+```
+
+2. **Replicate Ideogram**
+```json
+{
+    "image_generation": {
+        "default_provider": "replicate",
+        "providers": {
+            "replicate": {
+                "model": "ideogram-ai/ideogram-v2"
+            }
+        }
+    }
+}
+```
 
 ### Custom News Sources
 ```python
@@ -128,7 +178,7 @@ AutoGram includes robust error handling:
 ```plaintext
 📸 Generated Post Example:
 - Title: "Breaking: New AI Model Achieves Human-Level Performance"
-- Image: Modern tech visualization
+- Image: Modern tech visualization (via OpenAI GPT Image)
 - Hashtags: #AI #TechNews #Innovation #FutureOfTech
 - Engagement: 543 likes, 27 comments
 ```
@@ -149,7 +199,7 @@ AutoGram includes robust error handling:
 
 ## 🔮 Roadmap
 
-- [ ] Multi-platform support
+- [x] Multi-model image generation support
 - [ ] AI-powered hashtag optimization
 - [ ] Advanced analytics dashboard
 - [ ] Custom template builder
@@ -160,7 +210,6 @@ AutoGram includes robust error handling:
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
-
 ## 📜 License
 
 AutoGram is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -168,6 +217,6 @@ AutoGram is licensed under the MIT License - see the [LICENSE](LICENSE) file for
 ---
 
 <div align="center">
-    <p>Built with ❤️ by the AutoGram Team</p>
-    <p>Copyright © 2024 AutoGram</p>
+    <p>Built with ❤️ by the ranahaani@gmail.com</p>
+    <p>Copyright © 2025 AutoGram</p>
 </div>
