@@ -25,6 +25,9 @@ from pydantic import BaseModel
 from io import BytesIO
 from PIL import Image
 import re
+from openai import OpenAI
+
+from .image_generator import ImageGeneratorFactory, ImageGenerator
 
 load_dotenv()
 
@@ -90,6 +93,19 @@ class AgentConfig(BaseModel):
     memory_path: Path = Path("../agent_memory.json")
     output_dir: Path = Path("../output")
     credentials: Dict[str, str] = {}
+    image_generation: Dict[str, Any] = {
+        "default_provider": "openai",
+        "providers": {
+            "openai": {
+                "model": "gpt-image-1",
+                "size": "1024x1024",
+                "quality": "medium",
+            },
+            "replicate": {
+                "model": "ideogram-ai/ideogram-v2"
+            }
+        }
+    }
 
 
 class BrandTheme(BaseModel):
@@ -208,13 +224,15 @@ class AINewsAgent:
                 self.content_analyzer = None
                 self.logger.warning("Gemini AI not configured")
 
-            if self.config.credentials.get("REPLICATE_API_TOKEN"):
-                self.image_generator = replicate.Client(
-                    api_token=self.config.credentials["REPLICATE_API_TOKEN"]
-                )
-            else:
-                self.image_generator = None
-                self.logger.warning("Image generator not configured")
+            # Initialize image generator based on configuration
+            self.image_generator = ImageGeneratorFactory.create(
+                provider=self.config.image_generation["default_provider"],
+                credentials=self.config.credentials,
+                config=self.config.image_generation
+            )
+            
+            if not self.image_generator:
+                self.logger.warning(f"Image generator ({self.config.image_generation['default_provider']}) not configured")
 
             if all(k in self.config.credentials for k in ["IG_USERNAME", "IG_PASSWORD"]):
                 self.instagram = Client()
@@ -462,40 +480,25 @@ class AINewsAgent:
             return None
 
     async def _generate_image(self, text: str, session: Optional[aiohttp.ClientSession] = None) -> Optional[Path]:
-        """Generate an image for the given news title using an enhanced prompt and a shared HTTP session"""
+        """Generate an image for the given news title using the configured image generator."""
         if not self.image_generator:
             return None
-        own_session = False
-        if session is None:
-            session = aiohttp.ClientSession()
-            own_session = True
+            
         try:
             prompt = await self._enhance_prompt(text)
-            output = await asyncio.to_thread(
-                self.image_generator.run,
-                "ideogram-ai/ideogram-v2",
-                {
-                    "prompt": prompt,
-                    "negative_prompt": "text, watermark, low quality",
-                    "width": 1024,
-                    "height": 1024,
-                }
-            )
-            async with session.get(output.url) as response:
-                image_data = await response.read()
             filename = self._sanitize_filename(text)[:50] + ".jpg"
             image_path = self.config.output_dir / filename
-            image_path.write_bytes(image_data)
-            self.logger.info(f"Image generated and saved to {image_path}")
-            return image_path
+            
+            result_path = await self.image_generator.generate(prompt, image_path)
+            
+            if result_path:
+                self.logger.info(f"Image generated and saved to {result_path}")
+                return result_path
+            return None
 
         except Exception as e:
             self.logger.error(f"Image generation failed for '{text}': {e}")
             return None
-
-        finally:
-            if own_session:
-                await session.close()
 
     async def _enhance_prompt(self, text: str) -> str:
         """Generate optimized prompt for text-in-image generation with caching for efficiency"""

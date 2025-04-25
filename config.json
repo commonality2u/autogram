@@ -7,5 +7,19 @@
     "primary_color": "#FF6B6B",
     "secondary_color": "#4ECDC4",
     "font_style": "modern"
+  },
+  "image_generation": {
+    "default_provider": "openai",
+    "providers": {
+      "openai": {
+        "model": "gpt-image-1",
+        "size": "1024x1024",
+        "quality": "standard",
+        "style": "natural"
+      },
+      "replicate": {
+        "model": "ideogram-ai/ideogram-v2"
+      }
+    }
   }
 }

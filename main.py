@@ -25,6 +25,7 @@ def load_agent_config(config_path: str = "agent_config.json") -> AgentConfig:
         "credentials": {
             "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
             "REPLICATE_API_TOKEN": os.getenv("REPLICATE_API_TOKEN"),
+            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
             "IG_USERNAME": os.getenv("IG_USERNAME"),
             "IG_PASSWORD": os.getenv("IG_PASSWORD")
         }
