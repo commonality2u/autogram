@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 import aiohttp
-from openai import OpenAI
 import replicate
 
 
@@ -22,26 +21,42 @@ class ImageGenerator(ABC):
 
 
 class OpenAIImageGenerator(ImageGenerator):
-    """OpenAI's GPT Image model implementation."""
+    """OpenAI's GPT Image model implementation using direct HTTP POST (async)."""
     
     def __init__(self, api_key: str, config: Dict[str, Any]):
-        self.client = OpenAI(api_key=api_key)
+        self.api_key = api_key
         self.config = config
     
     async def generate(self, prompt: str, output_path: Path) -> Optional[Path]:
+        url = "https://api.openai.com/v1/images/generations"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.config["model"],
+            "prompt": prompt,
+            "n": 1,
+            "size": self.config.get("size", "1024x1024"),
+        }
+        if "quality" in self.config:
+            payload["quality"] = self.config["quality"]
+        if "style" in self.config:
+            payload["style"] = self.config["style"]
         try:
-            result = await self.client.images.generate(
-                model=self.config["model"],
-                prompt=prompt,
-                size=self.config["size"],
-                quality=self.config.get("quality", "medium"),
-            )
-            
-            # Decode and save the image
-            image_data = base64.b64decode(result.data[0].b64_json)
-            output_path.write_bytes(image_data)
-            return output_path
-            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload) as resp:
+                    if resp.status != 200:
+                        print(f"OpenAI image generation failed: HTTP {resp.status} - {await resp.text()}")
+                        return None
+                    data = await resp.json()
+                    b64 = data.get("data", [{}])[0].get("b64_json")
+                    if not b64:
+                        print(f"OpenAI image generation failed: No image data in response: {data}")
+                        return None
+                    image_data = base64.b64decode(b64)
+                    output_path.write_bytes(image_data)
+                    return output_path
         except Exception as e:
             print(f"OpenAI image generation failed: {e}")
             return None
